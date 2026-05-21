@@ -1,0 +1,326 @@
+
+-- ================================================================
+-- SAN NICOLAS v5.3 — Cobradores como usuarios del sistema
+-- Ejecutar en: Supabase → SQL Editor → New query → Run
+-- ================================================================
+
+-- 1. Ampliar constraint de numero y agregar campo agencia_numero
+alter table public.usuarios drop constraint if exists usuarios_numero_check;
+alter table public.usuarios add constraint usuarios_numero_check check (numero between 0 and 200);
+alter table public.usuarios add column if not exists agencia_numero smallint;
+
+-- 2. Agregar rol 'cobrador' al check
+alter table public.usuarios drop constraint if exists usuarios_rol_check;
+alter table public.usuarios add constraint usuarios_rol_check
+  check (rol in ('admin_central','admin_zona','agencia','cobrador'));
+
+-- 3. Insertar cobradores (numerados desde 25)
+-- PIN default: 1234  |  zona = zona de su agencia
+insert into public.usuarios (numero, nombre, pin, rol, zona, localidad, agencia_numero) values
+
+-- ZONA 2 - Sanagasta (agencia 23)
+(25,'Vega, Yanina',           '1234','cobrador',2,'Sanagasta',23),
+
+-- ZONA 2 - La Costa / Anillaco (agencia 21)
+(26,'Mercado, Silvia',        '1234','cobrador',2,'La Costa - Anillaco',21),
+
+-- ZONA 1 - Chepes (agencia 7)
+(27,'Cobrador Chepes',        '1234','cobrador',1,'Chepes',7),
+(28,'Ruarte, Liliana',        '1234','cobrador',1,'Chepes',7),
+(29,'Ruarte, Nestor',         '1234','cobrador',1,'Chepes',7),
+(30,'Aguero, Carlos',         '1234','cobrador',1,'Chepes',7),
+
+-- ZONA 1 - Ulapes (agencia 12)
+(31,'Zarate - Ulapes',        '1234','cobrador',1,'Ulapes',12),
+
+-- ZONA 2 - Los Sauces (agencia 22)
+(32,'Rodriguez, Ariel',       '1234','cobrador',2,'Los Sauces',22),
+(33,'Leiva, Nicolas',         '1234','cobrador',2,'Los Sauces',22),
+
+-- ZONA 2 - Aimogasta (agencia 15)
+(34,'Cordoba, D.',            '1234','cobrador',2,'Aimogasta',15),
+(35,'Ocampo, Jose Luis',      '1234','cobrador',2,'Aimogasta',15),
+(36,'Cobrador Aimogasta',     '1234','cobrador',2,'Aimogasta',15),
+
+-- ZONA 1 - Milagro (agencia 9)
+(37,'Ambil',                  '1234','cobrador',1,'Milagro',9),
+(38,'El Quemado',             '1234','cobrador',1,'Milagro',9),
+(39,'Oliva, Carlos',          '1234','cobrador',1,'Milagro',9),
+(40,'Muni - Milagro',         '1234','cobrador',1,'Milagro',9),
+
+-- ZONA 1 - Catuna (agencia 5)
+(41,'Capdevilla Catuna',      '1234','cobrador',1,'Catuna',5),
+
+-- ZONA 2 - Fiambala (agencia 20)
+(42,'Palo Blanco',            '1234','cobrador',2,'Fiambala',20),
+(43,'Delgado, Teresa',        '1234','cobrador',2,'Fiambala',20),
+(44,'Medanitos',              '1234','cobrador',2,'Fiambala',20),
+(45,'Bordon, Susana',         '1234','cobrador',2,'Fiambala',20),
+
+-- ZONA 2 - Chilecito (agencia 18)
+(46,'Nonogasta',              '1234','cobrador',2,'Chilecito',18),
+(47,'Sanogasta',              '1234','cobrador',2,'Chilecito',18),
+(48,'Guzman Chilecito',       '1234','cobrador',2,'Chilecito',18),
+(49,'Cobrador Chilecito',     '1234','cobrador',2,'Chilecito',18),
+(50,'Cobrador Chilecito 2',   '1234','cobrador',2,'Chilecito',18),
+(51,'Anguinan',               '1234','cobrador',2,'Chilecito',18),
+
+-- ZONA 2 - Famatina (agencia 19)
+(52,'Cobrador Famatina',      '1234','cobrador',2,'Famatina',19),
+
+-- ZONA 1 - Chamical (agencia 6)
+(53,'Cobrador Chamical',      '1234','cobrador',1,'Chamical',6),
+(54,'Toledo, Dario',          '1234','cobrador',1,'Chamical',6),
+
+-- ZONA 1 - Villa Union (agencia 13)
+(55,'Latiff, Jorge',          '1234','cobrador',1,'Villa Union',13),
+(56,'Ormeno W. Pagancillo',   '1234','cobrador',1,'Villa Union',13),
+(57,'Aicuna',                 '1234','cobrador',1,'Villa Union',13),
+(58,'Paez, Raul',             '1234','cobrador',1,'Villa Union',13),
+(59,'Paez, Luis',             '1234','cobrador',1,'Villa Union',13),
+
+-- ZONA 1 - Villa Union (Villa Castelli depende de VU)
+(60,'Cob. Villa Castelli',    '1234','cobrador',1,'Villa Union',13),
+
+-- ZONA 1 - Vinchina (agencia 14)
+(61,'Cobrador Vinchina',      '1234','cobrador',1,'Vinchina',14),
+
+-- ZONA 2 - Belen (agencia 16)
+(62,'Gimenez, Jorge',         '1234','cobrador',2,'Belen',16),
+
+-- ZONA 1 - Olta (agencia 10)
+(63,'Cobrador Olta',          '1234','cobrador',1,'Olta',10),
+
+-- ZONA 2 - Tinogasta (agencia 24)
+(64,'Gonzalez, Eva',          '1234','cobrador',2,'Tinogasta',24),
+(65,'Cobrador Tinogasta',     '1234','cobrador',2,'Tinogasta',24),
+(66,'Dabalo, Luis',           '1234','cobrador',2,'Tinogasta',24),
+(67,'Castro, Alejandro',      '1234','cobrador',2,'Tinogasta',24),
+(68,'Barrionuevo, C.',        '1234','cobrador',2,'Tinogasta',24),
+
+-- ZONA 2 - Campanas (agencia 17)
+(69,'AG - Campana',           '1234','cobrador',2,'Campanas',17)
+
+on conflict (numero) do update set
+  nombre=excluded.nombre, rol=excluded.rol,
+  zona=excluded.zona, localidad=excluded.localidad,
+  agencia_numero=excluded.agencia_numero;
+
+-- FIN
+
+-- ================================================================
+-- v5.4: Username + password para cobradores
+-- ================================================================
+
+-- Agregar campo username a usuarios
+alter table public.usuarios add column if not exists username text unique;
+
+-- Asignar usernames a cobradores existentes (numero como texto)
+update public.usuarios
+set username = 'cob' || numero::text
+where rol = 'cobrador' and username is null;
+
+-- Asignar usernames a agencias y admins
+update public.usuarios
+set username = lower(regexp_replace(nombre, '[^a-zA-Z0-9]', '', 'g'))
+where rol in ('admin_central','admin_zona','agencia') and username is null;
+
+-- Crear index para busqueda por username
+create index if not exists idx_us_username on public.usuarios(username);
+
+-- ================================================================
+-- v5.5: Nombres correctos de cobradores segun planilla Mayo 2026
+-- ================================================================
+
+update public.usuarios set nombre='Vega, Yanina'           where numero=25;
+update public.usuarios set nombre='Mercado, Silvia'        where numero=26;
+update public.usuarios set nombre='Cobrador Chepes'        where numero=27;
+update public.usuarios set nombre='Ruarte, Liliana'        where numero=28;
+update public.usuarios set nombre='Ruarte, Néstor'         where numero=29;
+update public.usuarios set nombre='Agüero, Carlos'         where numero=30;
+update public.usuarios set nombre='Zárate - Ulapes'        where numero=31;
+update public.usuarios set nombre='Rodríguez, Ariel'       where numero=32;
+update public.usuarios set nombre='Leiva, Nicolás'         where numero=33;
+update public.usuarios set nombre='Córdoba, D.'            where numero=34;
+update public.usuarios set nombre='Ocampo, José Luis'      where numero=35;
+update public.usuarios set nombre='Cobrador Aimogasta'     where numero=36;
+update public.usuarios set nombre='Ámbil'                  where numero=37;
+update public.usuarios set nombre='El Quemado'             where numero=38;
+update public.usuarios set nombre='Oliva, Carlos'          where numero=39;
+update public.usuarios set nombre='Muni. - Milagro'        where numero=40;
+update public.usuarios set nombre='Capdevilla Catuña'      where numero=41;
+update public.usuarios set nombre='Palo Blanco'            where numero=42;
+update public.usuarios set nombre='Delgado, Teresa'        where numero=43;
+update public.usuarios set nombre='Medanitos'              where numero=44;
+update public.usuarios set nombre='Bordón, Susana'         where numero=45;
+update public.usuarios set nombre='Nonogasta'              where numero=46;
+update public.usuarios set nombre='Sañogasta'              where numero=47;
+update public.usuarios set nombre='Guzmán Chilecito'       where numero=48;
+update public.usuarios set nombre='Cobrador Chilecito'     where numero=49;
+update public.usuarios set nombre='Cobrador Chilecito 2'   where numero=50;
+update public.usuarios set nombre='Anguinán'               where numero=51;
+update public.usuarios set nombre='Cobrador Famatina'      where numero=52;
+update public.usuarios set nombre='Cobrador Chamical'      where numero=53;
+update public.usuarios set nombre='Toledo, Darío'          where numero=54;
+update public.usuarios set nombre='Latiff, Jorge'          where numero=55;
+update public.usuarios set nombre='Ormeño W. Pagancillo'   where numero=56;
+update public.usuarios set nombre='Aicuña'                 where numero=57;
+update public.usuarios set nombre='Páez, Raúl'             where numero=58;
+update public.usuarios set nombre='Páez, Luis'             where numero=59;
+update public.usuarios set nombre='Cob. Villa Castelli'    where numero=60;
+update public.usuarios set nombre='Cobrador Vinchina'      where numero=61;
+update public.usuarios set nombre='Giménez, Jorge'         where numero=62;
+update public.usuarios set nombre='Cobrador Olta'          where numero=63;
+update public.usuarios set nombre='González, Eva'          where numero=64;
+update public.usuarios set nombre='Cobrador Tinogasta'     where numero=65;
+update public.usuarios set nombre='Dábalo, Luis'           where numero=66;
+update public.usuarios set nombre='Castro, Alejandro'      where numero=67;
+update public.usuarios set nombre='Barrionuevo, C.'        where numero=68;
+update public.usuarios set nombre='AG - Campaña'           where numero=69;
+
+-- ================================================================
+-- v5.6: Tabla cierres_diarios para historial de cierres enviados
+-- ================================================================
+
+create table if not exists public.cierres_diarios (
+  id              uuid        primary key default gen_random_uuid(),
+  fecha           date        not null,
+  agencia_id      uuid        references public.usuarios(id),
+  agencia_numero  smallint,
+  localidad       text        not null,
+  zona            smallint    not null,
+  cobros_cant     integer     not null default 0,
+  cobros_total    numeric(15,2) not null default 0,
+  tickets_cant    integer     not null default 0,
+  tickets_total   numeric(15,2) not null default 0,
+  caja_cant       integer     not null default 0,
+  caja_total      numeric(15,2) not null default 0,
+  neto            numeric(15,2) not null default 0,
+  estado          text        not null default 'enviado'
+                              check (estado in ('enviado','aprobado','rechazado')),
+  revisado_por    text,
+  revisado_at     timestamptz,
+  motivo_rechazo  text,
+  enviado_por     text,
+  registros_ids   jsonb,
+  created_at      timestamptz default now()
+);
+create index if not exists idx_cd_fecha   on public.cierres_diarios(fecha);
+create index if not exists idx_cd_agencia on public.cierres_diarios(agencia_id);
+create index if not exists idx_cd_zona    on public.cierres_diarios(zona);
+create index if not exists idx_cd_estado  on public.cierres_diarios(estado);
+
+alter table public.cierres_diarios enable row level security;
+drop policy if exists "anon_all_cierres" on public.cierres_diarios;
+create policy "anon_all_cierres" on public.cierres_diarios
+  for all to anon using (true) with check (true);
+
+-- ================================================================
+-- v5.7: Agregar columna ticket_num a cobros
+-- ================================================================
+alter table public.cobros add column if not exists ticket_num text;
+
+-- ================================================================
+-- PELUQUERIA: Servicios y precios
+-- ================================================================
+
+create table if not exists public.peluqueria_precios (
+  id          uuid        primary key default gen_random_uuid(),
+  servicio    text        not null,
+  precio      numeric(12,2) not null default 0,
+  activo      boolean     not null default true,
+  agencia_id  uuid        references public.usuarios(id),
+  localidad   text,
+  zona        smallint,
+  created_at  timestamptz default now(),
+  updated_at  timestamptz default now()
+);
+create index if not exists idx_peluc_agencia on public.peluqueria_precios(agencia_id);
+
+alter table public.peluqueria_precios enable row level security;
+drop policy if exists "anon_all_peluc" on public.peluqueria_precios;
+create policy "anon_all_peluc" on public.peluqueria_precios
+  for all to anon using (true) with check (true);
+
+-- Precios base (pueden ser editados por cada agencia)
+insert into public.peluqueria_precios (servicio, precio, localidad, zona) values
+('Ampolla Nutrición', 6500, null, null),
+('Ampolla Mordiente', 4000, null, null),
+('Aplicación Baño de Crema', 4000, null, null),
+('Aplicación de Ampolla', 4000, null, null),
+('Aplicación Tintura', 4000, null, null),
+('Baño de Crema Pelo Corto', 5500, null, null),
+('Baño de Crema Pelo Largo', 7000, null, null),
+('Baño de Crema Pelo XL', 8000, null, null),
+('Base Pelo Corto', 15000, null, null),
+('Base Pelo Largo', 18000, null, null),
+('Base Pelo XL', 22000, null, null),
+('Decoloración Completa P/Corto', 13000, null, null),
+('Decoloración Completa P/Largo', 15000, null, null),
+('Decoloración Completa P/XL', 18000, null, null),
+('Decoloración Reflejos Pelo Corto (Extra)', 9000, null, null),
+('Decoloración Reflejos Pelo Largo (Extra)', 10000, null, null),
+('Decoloración Reflejos Pelo XL (Extra)', 12000, null, null),
+('Diferencia Oxidante', 4000, null, null),
+('Mechas Pelo Corto x6', 8000, null, null),
+('Mechas Pelo Largo x6', 9500, null, null),
+('Mechas Pelo Corto x12', 15000, null, null),
+('Mechas Pelo Largo x12', 18000, null, null),
+('Mechas Muchas (Desde)', 25000, null, null),
+('Peinados', 10000, null, null),
+('Plancha', 7000, null, null),
+('Reflejo Pelo Corto', 20000, null, null),
+('Reflejo Pelo Largo', 30000, null, null),
+('Reflejo Pelo XL', 35000, null, null),
+('Reflejos XXL', 39000, null, null),
+('Reflejos Muchos (Desde)', 22000, null, null),
+('Tintura en Raíz', 8500, null, null),
+('Tintura Pelo Corto', 10000, null, null),
+('Tintura Pelo Largo', 12000, null, null),
+('Tintura Pelo XL', 14000, null, null),
+('Tintura Pelo XXL', 16000, null, null),
+('Tintura XXXL (Desde)', 20000, null, null),
+('Corte Particular Caballero', 10000, null, null),
+('Corte Particular Dama', 12000, null, null),
+('Brushing Particular (Desde)', 23000, null, null);
+
+-- ================================================================
+-- v5.8: Tabla Peluquería
+-- ================================================================
+create table if not exists public.peluqueria (
+  id          uuid        primary key default gen_random_uuid(),
+  servicio    text        not null,
+  precio      numeric(12,2) not null default 0,
+  localidad   text        not null default '',
+  zona        smallint    not null default 0,
+  activo      boolean     not null default true,
+  usuario_id  uuid        references public.usuarios(id),
+  usuario_nombre text,
+  created_at  timestamptz default now(),
+  updated_at  timestamptz default now()
+);
+create index if not exists idx_pel_zona on public.peluqueria(zona);
+create index if not exists idx_pel_loc  on public.peluqueria(localidad);
+
+alter table public.peluqueria enable row level security;
+drop policy if exists "anon_all_peluqueria" on public.peluqueria;
+create policy "anon_all_peluqueria" on public.peluqueria
+  for all to anon using (true) with check (true);
+
+-- Insertar lista base de servicios (precio 0 para que cada agencia lo personalice)
+insert into public.peluqueria (servicio, precio, zona) values
+('Ampolla Nutricion',0,0),('Ampolla Mordiente',0,0),('Aplicacion Bano de Crema',0,0),
+('Aplicacion de Ampolla',0,0),('Aplicacion Tintura',0,0),
+('Bano de Crema Pelo Corto',0,0),('Bano de Crema Pelo Largo',0,0),('Bano de Crema Pelo XL',0,0),
+('Base Pelo Corto',0,0),('Base Pelo Largo',0,0),('Base Pelo XL',0,0),
+('Decoloracion Completa P/Corto',0,0),('Decoloracion Completa P/Largo',0,0),('Decoloracion Completa P/XL',0,0),
+('Decoloracion Reflejos Pelo Corto',0,0),('Decoloracion Reflejos Pelo Largo',0,0),('Decoloracion Reflejos Pelo XL',0,0),
+('Diferencia Oxidante',0,0),
+('Mechas Pelo Corto x6',0,0),('Mechas Pelo Largo x6',0,0),
+('Mechas Pelo Corto x12',0,0),('Mechas Pelo Largo x12',0,0),('Mechas Muchas',0,0),
+('Peinados',0,0),('Plancha',0,0),
+('Reflejo Pelo Corto',0,0),('Reflejo Pelo Largo',0,0),('Reflejo Pelo XL',0,0),('Reflejos XXL',0,0),('Reflejos Muchos',0,0),
+('Tintura en Raiz',0,0),('Tintura Pelo Corto',0,0),('Tintura Pelo Largo',0,0),
+('Tintura Pelo XL',0,0),('Tintura Pelo XXL',0,0),('Tintura XXXL',0,0),
+('Corte Particular Caballero',0,0),('Corte Particular Dama',0,0),('Brushing Particular',0,0)
+on conflict do nothing;

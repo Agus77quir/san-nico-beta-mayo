@@ -1,0 +1,279 @@
+-- ================================================================
+-- SAN NICOLAS · RENACIMIENTO  —  SCHEMA COMPLETO v5
+-- Con zonas, agencias y roles diferenciados
+-- Ejecutar completo en: Supabase → SQL Editor → New query → Run
+-- ================================================================
+
+drop view if exists public.resumen_diario;
+create extension if not exists "pgcrypto";
+
+-- ─────────────────────────────────────────────────────────────────
+-- TABLA: usuarios
+-- roles:
+--   admin_central → ve y edita todo
+--   admin_zona    → ve y edita su zona
+--   agencia       → solo carga datos (sin editar/eliminar)
+-- ─────────────────────────────────────────────────────────────────
+drop table if exists public.usuarios cascade;
+create table public.usuarios (
+  id          uuid        primary key default gen_random_uuid(),
+  numero      smallint    not null unique,
+  nombre      text        not null,
+  pin         text        not null,
+  rol         text        not null default 'agencia'
+                          check (rol in ('admin_central','admin_zona','agencia')),
+  zona        smallint    not null default 1 check (zona in (0,1,2)),
+  localidad   text        not null default '',
+  activo      boolean     not null default true,
+  created_at  timestamptz default now(),
+  updated_at  timestamptz default now()
+);
+
+-- ─────────────────────────────────────────────────────────────────
+-- TABLA: cobros
+-- ─────────────────────────────────────────────────────────────────
+create table if not exists public.cobros (
+  id              uuid        primary key default gen_random_uuid(),
+  fecha           date        not null,
+  localidad       text        not null default '',
+  zona            smallint    not null default 1,
+  socio           text        not null,
+  mes             smallint    not null check (mes between 1 and 12),
+  importe         numeric(15,2) not null check (importe >= 0),
+  factura         text,
+  cobrador        text,
+  empresa         text        not null default 'San Nicolás',
+  estado          text        not null default 'cobrado'
+                              check (estado in ('cobrado','pendiente','anulado')),
+  obs             text,
+  usuario_id      uuid,
+  usuario_nombre  text,
+  usuario_numero  smallint,
+  created_at      timestamptz default now(),
+  updated_at      timestamptz default now()
+);
+create index if not exists idx_c_fecha   on public.cobros(fecha);
+create index if not exists idx_c_zona    on public.cobros(zona);
+create index if not exists idx_c_uid     on public.cobros(usuario_id);
+create index if not exists idx_c_local   on public.cobros(localidad);
+create index if not exists idx_c_estado  on public.cobros(estado);
+
+-- ─────────────────────────────────────────────────────────────────
+-- TABLA: tickets
+-- ─────────────────────────────────────────────────────────────────
+create table if not exists public.tickets (
+  id              uuid        primary key default gen_random_uuid(),
+  fecha           date        not null,
+  localidad       text        not null default '',
+  zona            smallint    not null default 1,
+  socio           text        not null,
+  mes             smallint    not null check (mes between 1 and 12),
+  importe         numeric(15,2) not null check (importe >= 0),
+  ticket          text,
+  motivo          text,
+  empresa         text        not null default 'San Nicolás',
+  usuario_id      uuid,
+  usuario_nombre  text,
+  usuario_numero  smallint,
+  created_at      timestamptz default now(),
+  updated_at      timestamptz default now()
+);
+create index if not exists idx_t_fecha on public.tickets(fecha);
+create index if not exists idx_t_zona  on public.tickets(zona);
+create index if not exists idx_t_uid   on public.tickets(usuario_id);
+
+-- ─────────────────────────────────────────────────────────────────
+-- TABLA: caja_movimientos
+-- ─────────────────────────────────────────────────────────────────
+create table if not exists public.caja_movimientos (
+  id              uuid        primary key default gen_random_uuid(),
+  fecha           date        not null,
+  localidad       text        not null default '',
+  zona            smallint    not null default 1,
+  empresa         text        not null,
+  tipo            text        not null,
+  banco           text,
+  flujo           text        not null check (flujo in ('ingreso','egreso')),
+  importe         numeric(15,2) not null check (importe >= 0),
+  obs             text,
+  usuario_id      uuid,
+  usuario_nombre  text,
+  usuario_numero  smallint,
+  created_at      timestamptz default now(),
+  updated_at      timestamptz default now()
+);
+create index if not exists idx_ca_fecha on public.caja_movimientos(fecha);
+create index if not exists idx_ca_zona  on public.caja_movimientos(zona);
+create index if not exists idx_ca_uid   on public.caja_movimientos(usuario_id);
+
+-- ─────────────────────────────────────────────────────────────────
+-- ROW LEVEL SECURITY
+-- ─────────────────────────────────────────────────────────────────
+alter table public.usuarios         enable row level security;
+alter table public.cobros           enable row level security;
+alter table public.tickets          enable row level security;
+alter table public.caja_movimientos enable row level security;
+
+drop policy if exists "anon_all_usuarios"   on public.usuarios;
+drop policy if exists "anon_select_cobros"  on public.cobros;
+drop policy if exists "anon_insert_cobros"  on public.cobros;
+drop policy if exists "anon_update_cobros"  on public.cobros;
+drop policy if exists "anon_delete_cobros"  on public.cobros;
+drop policy if exists "anon_select_tickets" on public.tickets;
+drop policy if exists "anon_insert_tickets" on public.tickets;
+drop policy if exists "anon_update_tickets" on public.tickets;
+drop policy if exists "anon_delete_tickets" on public.tickets;
+drop policy if exists "anon_select_caja"    on public.caja_movimientos;
+drop policy if exists "anon_insert_caja"    on public.caja_movimientos;
+drop policy if exists "anon_update_caja"    on public.caja_movimientos;
+drop policy if exists "anon_delete_caja"    on public.caja_movimientos;
+
+create policy "anon_all_usuarios"   on public.usuarios           for all    to anon using (true) with check (true);
+create policy "anon_select_cobros"  on public.cobros             for select to anon using (true);
+create policy "anon_insert_cobros"  on public.cobros             for insert to anon with check (true);
+create policy "anon_update_cobros"  on public.cobros             for update to anon using (true) with check (true);
+create policy "anon_delete_cobros"  on public.cobros             for delete to anon using (true);
+create policy "anon_select_tickets" on public.tickets            for select to anon using (true);
+create policy "anon_insert_tickets" on public.tickets            for insert to anon with check (true);
+create policy "anon_update_tickets" on public.tickets            for update to anon using (true) with check (true);
+create policy "anon_delete_tickets" on public.tickets            for delete to anon using (true);
+create policy "anon_select_caja"    on public.caja_movimientos   for select to anon using (true);
+create policy "anon_insert_caja"    on public.caja_movimientos   for insert to anon with check (true);
+create policy "anon_update_caja"    on public.caja_movimientos   for update to anon using (true) with check (true);
+create policy "anon_delete_caja"    on public.caja_movimientos   for delete to anon using (true);
+
+-- ─────────────────────────────────────────────────────────────────
+-- FUNCIÓN updated_at
+-- ─────────────────────────────────────────────────────────────────
+create or replace function public.set_updated_at()
+returns trigger language plpgsql as $$
+begin new.updated_at = now(); return new; end; $$;
+
+drop trigger if exists trg_u_upd  on public.usuarios;
+drop trigger if exists trg_c_upd  on public.cobros;
+drop trigger if exists trg_t_upd  on public.tickets;
+drop trigger if exists trg_ca_upd on public.caja_movimientos;
+
+create trigger trg_u_upd  before update on public.usuarios         for each row execute function public.set_updated_at();
+create trigger trg_c_upd  before update on public.cobros           for each row execute function public.set_updated_at();
+create trigger trg_t_upd  before update on public.tickets          for each row execute function public.set_updated_at();
+create trigger trg_ca_upd before update on public.caja_movimientos for each row execute function public.set_updated_at();
+
+-- ─────────────────────────────────────────────────────────────────
+-- VISTA resumen_diario
+-- ─────────────────────────────────────────────────────────────────
+create or replace view public.resumen_diario as
+select
+  c.fecha, c.zona, c.localidad, c.usuario_numero, c.usuario_nombre,
+  count(c.id)    as total_cobros,
+  sum(c.importe) as total_cobrado,
+  coalesce((
+    select sum(t.importe) from public.tickets t
+    where t.usuario_id = c.usuario_id and t.fecha = c.fecha
+  ), 0) as total_tickets
+from public.cobros c
+group by c.fecha, c.zona, c.localidad, c.usuario_numero, c.usuario_nombre, c.usuario_id
+order by c.fecha desc, c.zona, c.usuario_numero;
+
+-- ─────────────────────────────────────────────────────────────────
+-- USUARIOS
+-- numero 0  = Administrador Central
+-- numero 1  = Laura (Admin Zona 1)
+-- numero 2  = Juan  (Admin Zona 2)
+-- numero 3  = Sole  (Admin Zona 1 - asistente)
+-- numero 4  = Ceci  (Admin Zona 2 - asistente)
+-- numero 5-14  = Agencias Zona 1
+-- numero 15-24 = Agencias Zona 2
+-- PIN default agencias: 1234
+-- PIN admins: 0000
+-- ─────────────────────────────────────────────────────────────────
+insert into public.usuarios (numero, nombre, pin, rol, zona, localidad) values
+-- Central
+(0,  'Administrador',       '0000', 'admin_central', 0, 'Central'),
+-- Zona 1
+(1,  'Laura',               '0000', 'admin_zona',    1, 'Zona 1'),
+(3,  'Sole',                '0000', 'admin_zona',    1, 'Zona 1'),
+-- Zona 2
+(2,  'Juan',                '0000', 'admin_zona',    2, 'Zona 2'),
+(4,  'Ceci',                '0000', 'admin_zona',    2, 'Zona 2'),
+-- Agencias Zona 1
+(5,  'Catuna',              '1234', 'agencia',       1, 'Catuna'),
+(6,  'Chamical',            '1234', 'agencia',       1, 'Chamical'),
+(7,  'Chepes',              '1234', 'agencia',       1, 'Chepes'),
+(8,  'Malanzan',            '1234', 'agencia',       1, 'Malanzan'),
+(9,  'Milagro',             '1234', 'agencia',       1, 'Milagro'),
+(10, 'Olta',                '1234', 'agencia',       1, 'Olta'),
+(11, 'Tama',                '1234', 'agencia',       1, 'Tama'),
+(12, 'Ulapes',              '1234', 'agencia',       1, 'Ulapes'),
+(13, 'Villa Union',         '1234', 'agencia',       1, 'Villa Union'),
+(14, 'Vinchina',            '1234', 'agencia',       1, 'Vinchina'),
+-- Agencias Zona 2
+(15, 'Aimogasta',           '1234', 'agencia',       2, 'Aimogasta'),
+(16, 'Belen',               '1234', 'agencia',       2, 'Belen'),
+(17, 'Campanas',            '1234', 'agencia',       2, 'Campanas'),
+(18, 'Chilecito',           '1234', 'agencia',       2, 'Chilecito'),
+(19, 'Famatina',            '1234', 'agencia',       2, 'Famatina'),
+(20, 'Fiambala',            '1234', 'agencia',       2, 'Fiambala'),
+(21, 'La Costa - Anillaco', '1234', 'agencia',       2, 'La Costa - Anillaco'),
+(22, 'Los Sauces',          '1234', 'agencia',       2, 'Los Sauces'),
+(23, 'Sanagasta',           '1234', 'agencia',       2, 'Sanagasta'),
+(24, 'Tinogasta',           '1234', 'agencia',       2, 'Tinogasta')
+on conflict (numero) do update set
+  nombre=excluded.nombre, rol=excluded.rol,
+  zona=excluded.zona, localidad=excluded.localidad;
+
+-- FIN DEL SCRIPT
+
+-- ================================================================
+-- EXTENSION v5.1: Sistema de aprobación y notificaciones
+-- Agregar al final del schema existente en Supabase → SQL Editor
+-- ================================================================
+
+-- ─────────────────────────────────────────────────────────────────
+-- Agregar campos de revisión a las tablas existentes
+-- ─────────────────────────────────────────────────────────────────
+alter table public.cobros
+  add column if not exists estado_revision text not null default 'aprobado'
+    check (estado_revision in ('pendiente','aprobado','rechazado')),
+  add column if not exists revisado_por    text,
+  add column if not exists revisado_at     timestamptz,
+  add column if not exists motivo_rechazo  text;
+
+alter table public.tickets
+  add column if not exists estado_revision text not null default 'aprobado'
+    check (estado_revision in ('pendiente','aprobado','rechazado')),
+  add column if not exists revisado_por    text,
+  add column if not exists revisado_at     timestamptz,
+  add column if not exists motivo_rechazo  text;
+
+alter table public.caja_movimientos
+  add column if not exists estado_revision text not null default 'aprobado'
+    check (estado_revision in ('pendiente','aprobado','rechazado')),
+  add column if not exists revisado_por    text,
+  add column if not exists revisado_at     timestamptz,
+  add column if not exists motivo_rechazo  text;
+
+-- ─────────────────────────────────────────────────────────────────
+-- TABLA: notificaciones
+-- ─────────────────────────────────────────────────────────────────
+create table if not exists public.notificaciones (
+  id              uuid        primary key default gen_random_uuid(),
+  para_rol        text        not null, -- 'admin_central','admin_zona','agencia' o numero de usuario
+  para_zona       smallint,
+  para_usuario_id uuid,
+  tipo            text        not null, -- 'pendiente','aprobado','rechazado'
+  titulo          text        not null,
+  mensaje         text        not null,
+  tabla_origen    text,       -- 'cobros','tickets','caja_movimientos'
+  registro_id     uuid,
+  leida           boolean     not null default false,
+  created_at      timestamptz default now()
+);
+create index if not exists idx_notif_uid   on public.notificaciones(para_usuario_id);
+create index if not exists idx_notif_zona  on public.notificaciones(para_zona);
+create index if not exists idx_notif_leida on public.notificaciones(leida);
+
+alter table public.notificaciones enable row level security;
+drop policy if exists "anon_all_notificaciones" on public.notificaciones;
+create policy "anon_all_notificaciones" on public.notificaciones
+  for all to anon using (true) with check (true);
