@@ -25,3 +25,47 @@ CSS
 }
 Notas adicionales:
 Si tienes el contenedor emergente de notificaciones (#notif-popup), este tiene un z-index: 100, por lo que también quedará oculto por debajo de la barra fija. Si necesitas que los elementos desplegables de la propia topbar funcionen correctamente, el modal .ov debe ser el elemento con el valor más alto de todo el proyecto para bloquear completamente la interfaz.
+
+
+
+
+
+
+Revisando el código CSS que tienes en el archivo adjunto, el problema se debe a que la superposición (el contenedor del modal .ov) tiene configurado un z-index: 300, mientras que debajo de la sección de comentarios «NUCLEAR LAYOUT» forzaste a la .topbar a tener una prioridad extrema con un z-index: 9999 !important.
+
+Al tener un índice superior (9999 > 300), la barra superior siempre se renderizará por encima del modal.
+
+Cómo solucionarlo:
+Busca en tu hoja de estilos la clase .ov y aumenta su valor de z-index para que supere al de la topbar (por ejemplo, a 10000 o más).
+
+Modifica el código actual:
+
+CSS
+/* Busca este bloque en tu CSS */
+.ov {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.8);
+  z-index: 300; /* <-- Cambia este valor */
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+Déjalo configurado así:
+
+CSS
+.ov {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.8);
+  z-index: 10005 !important; /* Ahora está por encima de los 9999 de la topbar */
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+Notas adicionales:
+Si tienes el contenedor emergente de notificaciones (#notif-popup), este tiene un z-index: 100, por lo que también quedará oculto por debajo de la barra fija. Si necesitas que los elementos desplegables de la propia topbar funcionen correctamente, el modal .ov debe ser el elemento con el valor más alto de todo el proyecto para bloquear completamente la interfaz.
+
+
