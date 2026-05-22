@@ -1,0 +1,27 @@
+CSS
+/* Busca este bloque en tu CSS */
+.ov {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.8);
+  z-index: 300; /* <-- Cambia este valor */
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+Déjalo configurado así:
+
+CSS
+.ov {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.8);
+  z-index: 10005 !important; /* Ahora está por encima de los 9999 de la topbar */
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+Notas adicionales:
+Si tienes el contenedor emergente de notificaciones (#notif-popup), este tiene un z-index: 100, por lo que también quedará oculto por debajo de la barra fija. Si necesitas que los elementos desplegables de la propia topbar funcionen correctamente, el modal .ov debe ser el elemento con el valor más alto de todo el proyecto para bloquear completamente la interfaz.
